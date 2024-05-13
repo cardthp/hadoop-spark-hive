@@ -1,0 +1,34 @@
+https://github.com/big-data-europe/docker-hadoop
+https://github.com/big-data-europe/docker-hive
+https://github.com/big-data-europe/docker-spark
+https://github.com/kradanfi/
+
+https://kamboonchob.medium.com/hive-story-ep-2-lets-play-with-hive-7f0ffb3f5b9a
+https://hshirodkar.medium.com/apache-hive-on-docker-4d7280ac6f8e.
+
+
+=============================================================================================================
+
+
+- Namenode
+Default Ports (Hadoop 2.x and earlier):
+IPC (Inter-Process Communication): 8020 (This port can be changed)
+Web UI (HTTP): 50070 (This port can be changed)
+Web UI (HTTPS): 50470 (This port can be changed)
+
+Default Ports (Hadoop 3.x and later):
+IPC (Inter-Process Communication): 9820 (This port can be changed)
+Web UI (HTTP): 9870 (This port can be changed)
+Web UI (HTTPS): 9871 (This port can be changed)
+
+
+- Datanode
+Default Ports (Hadoop 2.x and earlier):
+IPC (Inter-Process Communication): 50010 (This port can be changed)
+DataNode UI (HTTP): 50075 (This port can be changed)
+DFS (Distributed File System) Client: default ephemeral port range (This is dynamically assigned)
+
+Default Ports (Hadoop 3.x and later):
+IPC (Inter-Process Communication): 9866 (This port can be changed)
+DataNode UI (HTTP): 9864 (This port can be changed)
+DFS (Distributed File System) Client: default ephemeral port range (This is dynamically assigned)

@@ -1,0 +1,172 @@
+version: "3"
+
+services:
+
+#################### Hadoop Ecosystem Services ####################
+
+  # Core of the Hadoop cluster. It keeps the directory tree of all files in the file system, 
+  # and tracks where the file data is actually kept in the cluster.
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: always
+    ports:
+      - 9870:9870 # UI HTTPS
+      - 9010:9000 # CORE
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=test
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000 #
+    env_file:
+      - ./hadoop.env
+    networks:
+      - default
+
+  # Store the data blocks that make up your files. Each file is replicated across multiple DataNodes
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    restart: always
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+      CORE_CONF_fs_default: FS=hdfs://namenode:9000 #
+    ports:          #
+      - "9864:9864" #
+    env_file:
+      - ./hadoop.env
+    networks:
+      - default
+  
+  # Traffic cop for the Hadoop cluster. It receives job requests from clients, 
+  # schedules them on available NodeManagers, and monitors job progress.
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
+    env_file:
+      - ./hadoop.env
+    networks:
+      - default
+
+  # Each node in the cluster runs a NodeManager. It receives tasks from the ResourceManager,
+  # launches the necessary containers to execute those tasks, and monitors their progress
+  nodemanager1:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    env_file:
+      - ./hadoop.env
+    networks:
+      - default
+  
+  # Keeps track of completed jobs in the Hadoop cluster, including job history, logs, and statistics.
+  historyserver:
+    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    container_name: historyserver
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    volumes:
+      - hadoop_historyserver:/hadoop/yarn/timeline
+    env_file:
+      - ./hadoop.env
+    networks:
+      - default
+
+#################### Apache Spark Services ####################
+
+  spark-master:
+    image: bde2020/spark-master:3.0.0-hadoop3.2 #
+    container_name: spark-master
+    depends_on:  #
+      - namenode #
+      - datanode #
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - INIT_DAEMON_STEP=setup_spark
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000 #
+    networks:
+      - default
+
+  spark-worker-1: # Exec here
+    image: bde2020/spark-worker:3.0.0-hadoop3.2 #
+    container_name: spark-worker-1
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000 #
+    networks:
+      - default
+
+#################### Apache Hive Services ####################
+
+  # Core service for Apache Hive. It accepts HiveQL queries (a SQL-like language) from users 
+  # and translates them into MapReduce, Spark jobs that can be executed on the Hadoop cluster. 
+  hive-server: # Exec here
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server #
+    depends_on:  #
+      - namenode #
+      - datanode #
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    ports:
+      - "10000:10000"
+    networks:
+      - default
+
+  # Central repository for metadata related to Hive tables. It stores information like table schema, 
+  # location of data blocks within HDFS,and other details crucial for Hive to function.
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore #
+    env_file:
+      - ./hadoop-hive.env
+    command: /opt/hive/bin/hive --service metastore
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-postgresql:5432" #
+    ports:
+      - "9083:9083"
+    networks:
+      - default
+
+  # PostgreSQL database used by the Hive Metastore to store its metadata information. 
+  # It provides a persistent storage mechanism for the critical information about your Hive tables.
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgresql #
+    networks:
+      - default
+
+  # Presto is on top of Apache Hive,receives SQL queries from users to execute the query tasks on the Hadoop cluster.
+  presto-coordinator:
+    image: shawnzhu/prestodb:0.181
+    container_name: presto-coordinator #
+    ports:
+      - "8089:8089" #
+    networks:
+      - default
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  hadoop_historyserver:
+
+networks:
+  default:
+    name: hadoop-hive-spark
