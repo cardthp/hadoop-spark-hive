@@ -21,5 +21,5 @@ $ SHOW COLUMNS from restaurant_detail_new
 ```
 
 ## Hive output
-[1. cooking.csv](hadoop-spark-hive/data_output/cooking.csv)<br/>
-[2. discount.csv](hadoop-spark-hive/data_output/discount.csv)
+[1. cooking.csv](data_output/cooking.csv)<br/>
+[2. discount.csv](data_output/discount.csv)
