@@ -1,5 +1,4 @@
 ## Deploy hive
-all script in 1_deploy.sh(spark,hive)
 ```bash
 $ cd hadoop-spark-hive
 $ docker-compose up -d
@@ -21,6 +20,6 @@ $ SHOW COLUMNS from order_detail_new
 $ SHOW COLUMNS from restaurant_detail_new
 ```
 
-## hive output
+## Hive output
 [1. cooking.csv](hive/data_input/cooking.csv)<br/>
 [2. discount.csv](hive/data_output/discount.csv)
